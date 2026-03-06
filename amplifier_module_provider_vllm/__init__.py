@@ -142,6 +142,14 @@ class VLLMProvider:
         self.base_url = base_url
         self.api_key = api_key
 
+        # Fail fast: require either base_url or a pre-built client.
+        # Without this guard, instantiation silently succeeds with base_url=None and
+        # the error only surfaces later when list_models() or complete() accesses self.client.
+        # Raising here causes the CLI's _try_instantiate_provider() Approach 1 (no base_url)
+        # to fall through to Approach 3, which correctly passes the resolved base_url.
+        if self.base_url is None and self._client is None:
+            raise ValueError("base_url or client must be provided for API calls")
+
         # Configuration with sensible defaults (from _constants.py - single source of truth)
         self.default_model = self.config.get("default_model", DEFAULT_MODEL)
         self.max_tokens = self.config.get("max_tokens", DEFAULT_MAX_TOKENS)
